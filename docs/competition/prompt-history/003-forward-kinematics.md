@@ -108,13 +108,29 @@ npm run build
 git show --check HEAD
 ```
 
-Resolve the final Task 3 commit without embedding a stale hash:
+Verify the fixed initial implementation commit and its subject directly:
 
 ```sh
-git log -1 --format=%H -- docs/competition/prompt-history/003-forward-kinematics.md
+git show -s --format='%H%n%s' 052e674
 ```
 
-Expected subject: `feat: implement UR5 forward kinematics`.
+Expected output:
+
+```text
+052e67471a4de97b40b5d17fd268c6887d542290
+feat: implement UR5 forward kinematics
+```
+
+To resolve the newest correction that touched this evidence file, use:
+
+```sh
+git log -1 --format='%H%n%s' -- docs/competition/prompt-history/003-forward-kinematics.md
+```
+
+That path-scoped result intentionally has no hard-coded expected hash or subject:
+each evidence correction, including this clarification, becomes the newest
+matching commit. The command's own output is the authoritative latest record;
+it must not be confused with the fixed initial implementation commit above.
 
 ## Review correction 1 — stable 180-degree quaternions and finite derived values
 
