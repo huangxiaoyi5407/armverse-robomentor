@@ -1,0 +1,49 @@
+:root {
+  color-scheme: dark;
+  --color-background: #10151d;
+  --color-surface: #192330;
+  --color-text: #edf2f7;
+  --color-muted: #adbacb;
+  --color-accent: #71ddd0;
+  --color-danger: #ff8585;
+  --space-unit: 0.5rem;
+  --font-sans: Arial, "Microsoft YaHei", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+}
+
+.foundation {
+  max-width: 64rem;
+  margin-inline: auto;
+  padding: clamp(1.5rem, 6vw, 5rem);
+}
+
+.eyebrow,
+.description {
+  color: var(--color-muted);
+}
+
+h1 {
+  margin-block: calc(var(--space-unit) * 2);
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  line-height: 1.2;
+}
+
+.mode-status {
+  width: fit-content;
+  padding: var(--space-unit) calc(var(--space-unit) * 2);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--space-unit);
+  background: var(--color-surface);
+  color: var(--color-accent);
+}

@@ -1,6 +1,8 @@
 .worktrees/
 .superpowers/
 node_modules/
+next-env.d.ts
+*.tsbuildinfo
 .next/
 coverage/
 playwright-report/
