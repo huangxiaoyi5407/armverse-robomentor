@@ -18,7 +18,9 @@ Date: 2026-10-22. Task: create the smallest Next.js / TypeScript foundation for 
 
 | Package | Version |
 | --- | --- |
-| next / eslint-config-next | 16.4.2 |
+| next | 16.4.2 |
+| eslint-config-next | 16.0.10 |
+| typescript-eslint (complete matched toolchain) | 8.46.4 |
 | react / react-dom | 19.3.1 |
 | typescript | 5.9.3 |
 | vite | 6.4.5 |
@@ -134,4 +136,77 @@ Exit 0. `npm run test:e2e`: exit 0, `Browser acceptance tests will be added in T
 
 From a clean checkout with Node >=20.9 and npm >=10: run `npm ci`, then `npm run dev`, and open `http://localhost:3000`. No environment variables or AI key are needed.
 
-Commit subject: `chore: establish reproducible Next.js foundation`. Resolve the immutable commit for this record with `git log -1 --format=%H -- docs/competition/prompt-history/001-project-foundation.md`.
+Initial commit: `bc066653ab55a113f2a130d99149ad7c4c48a172`, subject `chore: establish reproducible Next.js foundation`. Resolve the latest correction commit for this record with `git log -1 --format=%H -- docs/competition/prompt-history/001-project-foundation.md`.
+
+## Review correction 1 — complete Node 20.9 engine audit
+
+The initial review checked top-level Vite's engine but missed a required transitive dependency. The original lockfile contained `@typescript-eslint/visitor-keys@8.72.0 -> eslint-visitor-keys@5.0.1`, whose Node requirement is `^20.19.0 || ^22.13.0 || >=24`. Thus the initial foundation did **not** support its declared Node 20.9 baseline. The earlier passing tests and build ran on Node24 and did not establish minimum-runtime compatibility.
+
+Accepted review correction: select the **complete** compatible TypeScript ESLint toolchain, rather than override its child dependency. Official npm metadata established:
+
+- `eslint-config-next@16.0.10` accepts `typescript-eslint@^8.46.0`.
+- `typescript-eslint@8.46.4` pins its parser, plugin, utils and TypeScript ESTree packages to `8.46.4`.
+- `@typescript-eslint/visitor-keys@8.46.4` naturally depends on `eslint-visitor-keys@^4.2.1`, which supports Node20.9.
+
+The manifest now fixes `eslint-config-next` to `16.0.10` and explicitly fixes `typescript-eslint` to `8.46.4`, using `$typescript-eslint` to keep that same version throughout the graph. Next runtime remains 16.4.2. No child visitor-keys override was added.
+
+Commands, from the project root:
+
+```text
+npm view eslint-config-next@16.0.10 dependencies --json
+npm view @typescript-eslint/visitor-keys@8.46.4 dependencies engines --json
+npm view typescript-eslint@8.46.4 dependencies engines --json
+npm install --fetch-retries=0 --fetch-timeout=20000 --maxsockets=5 --no-audit --no-fund
+```
+
+Installation exited0: `added 3 packages, removed 4 packages, and changed 15 packages in 13s`. `npm ls typescript-eslint @typescript-eslint/visitor-keys eslint-visitor-keys` confirmed TypeScript ESLint's packages are all 8.46.4 and visitor keys naturally dedupes to ESLint's 4.2.1; no 5.x visitor keys remains.
+
+Audit **every** lockfile dependency marked neither `optional` nor `devOptional`, including development dependencies and nested duplicate packages, rather than only direct dependencies. Use npm's semver parser against the literal minimum version; absent engines are counted separately. Reproducible command:
+
+```sh
+node -e "const semver=require('semver');const lock=require('./package-lock.json');const deps=Object.entries(lock.packages).filter(([location,p])=>location&&!p.optional&&!p.devOptional);const engines=deps.filter(([,p])=>p.engines?.node);const bad=engines.filter(([,p])=>!semver.satisfies('20.9.0',p.engines.node)).map(([location,p])=>({location,version:p.version,node:p.engines.node}));console.log(JSON.stringify({target:'20.9.0',requiredDependencies:deps.length,withNodeEngine:engines.length,withoutNodeEngine:deps.length-engines.length,incompatible:bad},null,2));process.exitCode=bad.length?1:0;"
+```
+
+Before correction: exit1, 433 required dependencies / 309 with engines, one incompatible entry: the nested `eslint-visitor-keys@5.0.1` above.
+
+After correction and again after clean `npm ci`, exit0:
+
+```json
+{
+  "target": "20.9.0",
+  "requiredDependencies": 432,
+  "withNodeEngine": 306,
+  "withoutNodeEngine": 126,
+  "incompatible": []
+}
+```
+
+`npm ci --no-audit --no-fund --fetch-retries=0 --fetch-timeout=20000 --maxsockets=5` exited0: `added 440 packages in 18s`. The same previously recorded deprecation and npm allow-scripts notices remain.
+
+Fresh verification after this clean installation:
+
+```text
+npm run test:run
+✓ src/app/page.test.tsx (2 tests) 46ms
+Test Files  1 passed (1)
+Tests  2 passed (2)
+Start at  20:44:04
+Duration  1.29s
+
+npm run lint
+> eslint . --max-warnings=0
+
+npm run build
+▲ Next.js 16.4.2 (webpack)
+✓ Compiled successfully in 1021ms
+Finished TypeScript in 941ms ...
+✓ Generating static pages using 4 workers (3/3) in 407ms
+Route (app)
+┌ ○ /
+└ ○ /_not-found
+○ (Static) prerendered as static content
+```
+
+Each command exited0, build elevated for the previously documented sandbox restriction. An intermediate lint run found three forbidden CommonJS imports in the temporary ignored audit helper; converted that helper to ESM and reran lint to the clean exit0 shown above. Application source and ESLint rules were unchanged.
+
+This is a complete **declared engines** audit of the required lockfile graph. Packages without engine declarations and actual execution on Node20.9 have not been validated by that metadata check; runtime verification still used Node24.18/npm11.16. README/browser release gates and prior deprecation concerns remain as documented.

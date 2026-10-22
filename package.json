@@ -26,14 +26,16 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "eslint": "^9.0.0",
-    "eslint-config-next": "^16.0.0",
+    "eslint-config-next": "16.0.10",
     "jsdom": "^26.1.0",
     "typescript": "^5.9.0",
+    "typescript-eslint": "8.46.4",
     "vitest": "^3.2.4",
     "vite": "^6.0.0",
     "rollup": "npm:@rollup/wasm-node@4.64.0"
   },
   "overrides": {
-    "rollup": "$rollup"
+    "rollup": "$rollup",
+    "typescript-eslint": "$typescript-eslint"
   }
 }
