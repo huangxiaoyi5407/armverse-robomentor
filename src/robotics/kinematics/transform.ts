@@ -38,6 +38,9 @@ export function multiplyMatrix4(left: Matrix4, right: Matrix4): Matrix4 {
       for (let inner = 0; inner < 4; inner += 1) {
         value += left[row * 4 + inner] * right[inner * 4 + column];
       }
+      if (!Number.isFinite(value)) {
+        throw new RangeError("Matrix multiplication produced a non-finite value.");
+      }
       result[row * 4 + column] = value;
     }
   }
@@ -61,12 +64,15 @@ export function dhTransform(row: StandardDhRow, angle: number): Matrix4 {
   assertFiniteNumber(angle, "Joint angle");
 
   const theta = angle + row.thetaOffset;
+  if (!Number.isFinite(theta)) {
+    throw new RangeError("Joint angle plus DH thetaOffset must remain finite.");
+  }
   const cosTheta = Math.cos(theta);
   const sinTheta = Math.sin(theta);
   const cosAlpha = Math.cos(row.alpha);
   const sinAlpha = Math.sin(row.alpha);
 
-  return Object.freeze([
+  const result = [
     cosTheta,
     -sinTheta * cosAlpha,
     sinTheta * sinAlpha,
@@ -83,6 +89,9 @@ export function dhTransform(row: StandardDhRow, angle: number): Matrix4 {
     0,
     0,
     1,
-  ]) as Matrix4;
+  ];
+  if (result.some((value) => !Number.isFinite(value))) {
+    throw new RangeError("DH transform produced a non-finite value.");
+  }
+  return Object.freeze(result) as unknown as Matrix4;
 }
-

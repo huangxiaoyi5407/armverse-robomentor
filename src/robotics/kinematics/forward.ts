@@ -10,6 +10,8 @@ import { assertFiniteVector } from "@/robotics/types";
 import { dhTransform, identityMatrix4, multiplyMatrix4 } from "./transform";
 
 const JOINT_COUNT = 6;
+/** Values at or below this magnitude are treated as the 180-degree sign tie. */
+const QUATERNION_SIGN_TIE_TOLERANCE = 1e-12;
 
 function assertFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -76,9 +78,11 @@ function canonicalizeQuaternion(quaternion: readonly number[]): Quaternion {
   }
 
   const normalized = quaternion.map((value) => value / magnitude);
-  const signProbe = normalized[3] !== 0
+  const signProbe = Math.abs(normalized[3]) > QUATERNION_SIGN_TIE_TOLERANCE
     ? normalized[3]
-    : (normalized.find((value) => value !== 0) ?? 1);
+    : (normalized
+      .slice(0, 3)
+      .find((value) => Math.abs(value) > QUATERNION_SIGN_TIE_TOLERANCE) ?? 1);
   const sign = signProbe < 0 ? -1 : 1;
   return Object.freeze(normalized.map((value) => value * sign)) as unknown as Quaternion;
 }
@@ -163,4 +167,3 @@ export function forwardKinematics(
     frames: immutableFrames,
   });
 }
-

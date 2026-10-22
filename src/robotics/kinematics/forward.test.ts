@@ -42,6 +42,15 @@ function expectPoseMatchesMatrix(matrix: Matrix4, pose: ReturnType<typeof forwar
   expect(Math.hypot(...pose.orientation)).toBeCloseTo(1, 12);
 }
 
+function modelWith(overrides: Partial<RobotModel>): RobotModel {
+  return {
+    ...UR5_MODEL,
+    dhParameters: UR5_MODEL.dhParameters.map((row) => ({ ...row })),
+    jointLimits: UR5_MODEL.jointLimits.map((limit) => ({ ...limit })),
+    ...overrides,
+  };
+}
+
 describe("homogeneous transforms", () => {
   it("keeps either operand unchanged when composing with identity", () => {
     const transform: Matrix4 = [
@@ -67,6 +76,32 @@ describe("homogeneous transforms", () => {
       0, 1, 0, 3,
       0, 0, 0, 1,
     ]);
+  });
+
+  it("rejects a finite angle and offset whose derived theta overflows", () => {
+    expect(() =>
+      dhTransform(
+        { a: 0, d: 0, alpha: 0, thetaOffset: Number.MAX_VALUE },
+        Number.MAX_VALUE,
+      ),
+    ).toThrow(RangeError);
+  });
+
+  it("rejects finite matrices whose multiplication overflows", () => {
+    const huge: Matrix4 = [
+      Number.MAX_VALUE, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ];
+    const scaleByTwo: Matrix4 = [
+      2, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ];
+
+    expect(() => multiplyMatrix4(huge, scaleByTwo)).toThrow(RangeError);
   });
 });
 
@@ -112,6 +147,56 @@ describe("forwardKinematics", () => {
     expect(Object.isFrozen(result.endEffector)).toBe(true);
     expect(Object.isFrozen(result.endEffector.position)).toBe(true);
     expect(Object.isFrozen(result.endEffector.orientation)).toBe(true);
+  });
+
+  it("chooses one stable unit-quaternion representative at and near 180 degrees", () => {
+    const positivePi = forwardKinematics(UR5_MODEL, [0, 0, 0, 0, 0, Math.PI])
+      .endEffector.orientation;
+    const negativePi = forwardKinematics(UR5_MODEL, [0, 0, 0, 0, 0, -Math.PI])
+      .endEffector.orientation;
+    const justBelowPositivePi = forwardKinematics(UR5_MODEL, [
+      0, 0, 0, 0, 0, Math.PI - 1e-13,
+    ]).endEffector.orientation;
+    const justAboveNegativePi = forwardKinematics(UR5_MODEL, [
+      0, 0, 0, 0, 0, -Math.PI + 1e-13,
+    ]).endEffector.orientation;
+
+    for (const quaternion of [
+      positivePi,
+      negativePi,
+      justBelowPositivePi,
+      justAboveNegativePi,
+    ]) {
+      expect(Math.hypot(...quaternion)).toBeCloseTo(1, 12);
+    }
+    positivePi.forEach((value, index) => {
+      expect(value).toBeCloseTo(negativePi[index], 12);
+    });
+    const positiveSideDot = positivePi.reduce(
+      (sum, value, index) => sum + value * justBelowPositivePi[index],
+      0,
+    );
+    const negativeSideDot = negativePi.reduce(
+      (sum, value, index) => sum + value * justAboveNegativePi[index],
+      0,
+    );
+    expect(positiveSideDot).toBeGreaterThan(0.999999999999);
+    expect(negativeSideDot).toBeGreaterThan(0.999999999999);
+  });
+
+  it("rejects finite model and joint values when FK angle derivation overflows", () => {
+    const rows = UR5_MODEL.dhParameters.map((row, index) =>
+      index === 0 ? { ...row, thetaOffset: Number.MAX_VALUE } : { ...row },
+    );
+    const limits = UR5_MODEL.jointLimits.map(() => ({
+      min: -Number.MAX_VALUE,
+      max: Number.MAX_VALUE,
+    }));
+    const model = modelWith({ dhParameters: rows, jointLimits: limits });
+
+    expect(() =>
+      forwardKinematics(model, [Number.MAX_VALUE, 0, 0, 0, 0, 0]),
+    ).toThrow(RangeError);
   });
 
   it.each([

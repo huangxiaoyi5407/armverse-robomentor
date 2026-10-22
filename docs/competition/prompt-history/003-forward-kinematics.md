@@ -24,8 +24,9 @@ UI, rendering, state, or Agent behavior was added.
   multiplication convention directly testable.
 - Accepted quaternion convention: `(x, y, z, w)`, normalized after conversion.
   Since `q` and `-q` encode the same rotation, output uses a deterministic sign:
-  prefer non-negative `w`; at an exact 180-degree tie, prefer the first non-zero
-  component to be positive.
+  prefer non-negative `w`; when `|w| <= 1e-12`, treat the value as the numerical
+  180-degree tie and prefer the first `x/y/z` component whose magnitude exceeds
+  `1e-12` to be positive.
 - Rejected: matrix transposition for display, reverse-order multiplication,
   modified DH, degree inputs, permissive clamping, implicit tool offsets,
   Math.js/robotics-library runtime dependencies, and mutable return arrays.
@@ -104,7 +105,7 @@ npm run build
 ✓ Finished TypeScript
 ✓ Generating static pages using 4 workers (3/3)
 
-git diff --check
+git show --check HEAD
 ```
 
 Resolve the final Task 3 commit without embedding a stale hash:
@@ -114,3 +115,51 @@ git log -1 --format=%H -- docs/competition/prompt-history/003-forward-kinematics
 ```
 
 Expected subject: `feat: implement UR5 forward kinematics`.
+
+## Review correction 1 — stable 180-degree quaternions and finite derived values
+
+Independent review found three defects in the initial Task 3 commit `052e674`:
+
+1. Testing only `w === 0` did not canonicalize equivalent `+pi` and `-pi`
+   rotations to the same numerical quaternion representative.
+2. Finite inputs could overflow while adding `angle + thetaOffset` or summing
+   matrix products, allowing public transform functions to return NaN/Infinity.
+3. The initial evidence used plain `git diff --check` after committing, which
+   checked an empty working-tree diff rather than the delivered commit; the
+   commit also contained two extra EOF blank lines.
+
+Regression tests were added before the correction. Focused red evidence:
+
+```text
+npm run test:run -- src/robotics/kinematics/forward.test.ts
+Test Files  1 failed (1)
+Tests  4 failed | 17 passed (21)
+
+FAIL rejects a finite angle and offset whose derived theta overflows
+FAIL rejects finite matrices whose multiplication overflows
+FAIL chooses one stable unit-quaternion representative at and near 180 degrees
+FAIL rejects finite model and joint values when FK angle derivation overflows
+```
+
+The correction introduces the documented `1e-12` quaternion sign-tie tolerance,
+rejects a non-finite derived theta, and checks every matrix product/output entry
+before returning. The exact and near-180-degree tests call public FK, verify unit
+length and representative continuity, and the transform/FK overflow tests verify
+that non-finite results cannot escape public APIs.
+
+First correction green:
+
+```text
+npm run test:run -- src/robotics/kinematics/forward.test.ts
+Test Files  1 passed (1)
+Tests  21 passed (21)
+```
+
+The corrected submission is verified at commit level rather than against an
+empty worktree:
+
+```text
+git show --check HEAD
+```
+
+Expected output is only the commit header and message, with no whitespace error.
