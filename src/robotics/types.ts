@@ -1,7 +1,11 @@
 /** A Cartesian vector in metres unless a caller explicitly documents otherwise. */
 export type Vector3 = readonly [x: number, y: number, z: number];
 
-/** A row-major 4 x 4 homogeneous transform. */
+/**
+ * A 4 x 4 homogeneous transform stored in row-major order.
+ * Robotics transforms left-multiply column vectors; storage order does not
+ * change that multiplication convention.
+ */
 export type Matrix4 = readonly [
   number,
   number,
@@ -24,7 +28,13 @@ export type Matrix4 = readonly [
 /** Unit quaternion ordered as x, y, z, w. */
 export type Quaternion = readonly [x: number, y: number, z: number, w: number];
 
-/** A tool pose relative to the robot base frame. Position is in metres. */
+/**
+ * A rigid pose with position in metres.
+ *
+ * Callers must name the reference and target frames. In particular, UR5
+ * base-to-frame-6 kinematics produces a flange pose; it is a tool pose only
+ * after composing a separate flange-to-tool transform.
+ */
 export interface Pose {
   readonly position: Vector3;
   readonly orientation: Quaternion;
@@ -34,13 +44,13 @@ export interface Pose {
 export type JointVector = readonly [number, number, number, number, number, number];
 
 export interface StandardDhRow {
-  /** Link length along x_(i-1), in metres. */
+  /** Link length translated along x_i, in metres. */
   readonly a: number;
   /** Link offset along z_(i-1), in metres. */
   readonly d: number;
-  /** Link twist about x_(i-1), in radians. */
+  /** Link twist rotated about x_i, in radians. */
   readonly alpha: number;
-  /** Constant added to the revolute joint angle, in radians. */
+  /** Constant added to rotation about z_(i-1), in radians. */
   readonly thetaOffset: number;
 }
 
@@ -76,11 +86,14 @@ export function assertFiniteVector(
     throw new TypeError("Vector length must be a non-negative integer.");
   }
 
-  if (
-    !Array.isArray(values) ||
-    values.length !== length ||
-    !values.every((value) => typeof value === "number" && Number.isFinite(value))
-  ) {
+  if (!Array.isArray(values) || values.length !== length) {
     throw new TypeError(`Expected a finite numeric vector of length ${length}.`);
+  }
+
+  for (let index = 0; index < length; index += 1) {
+    const value = values[index];
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      throw new TypeError(`Expected a finite numeric vector of length ${length}.`);
+    }
   }
 }

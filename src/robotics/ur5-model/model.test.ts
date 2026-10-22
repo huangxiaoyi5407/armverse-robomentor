@@ -17,6 +17,12 @@ describe("UR5_MODEL", () => {
     ]);
   });
 
+  it("pins the matrix, vector, standard-DH, and flange-frame conventions", () => {
+    expect(UR5_MODEL.frameConvention).toBe(
+      "Row-major matrices store transforms that left-multiply column vectors: p_(i-1) = T_(i-1,i) p_i. T_(i-1,i) = RotZ(theta_i) TransZ(d_i) TransX(a_i) RotX(alpha_i). Joint i rotates about z_(i-1); a_i and alpha_i act along/about x_i. Frame 0 is base; frame 6 is flange. A tool pose requires a separate flange-to-tool transform.",
+    );
+  });
+
   it("uses metres and radians with six official joint ranges", () => {
     expect(UR5_MODEL.units).toEqual({ length: "metre", angle: "radian" });
     expect(UR5_MODEL.jointLimits).toHaveLength(6);
@@ -62,6 +68,14 @@ describe("robotics boundary guards", () => {
     expect(() => assertFiniteVector(values, 3)).not.toThrow();
   });
 
+  it("rejects fully and partially sparse finite vectors", () => {
+    expect(() => assertFiniteVector(new Array(3), 3)).toThrow(TypeError);
+
+    const partiallySparse = [0, 1, 2];
+    delete partiallySparse[1];
+    expect(() => assertFiniteVector(partiallySparse, 3)).toThrow(TypeError);
+  });
+
   it("rejects invalid or degree-like UR5 joint inputs", () => {
     expect(() => assertJointVector([0, 0, 0, 0, 0])).toThrow(TypeError);
     expect(() => assertJointVector([0, 0, 0, Number.NaN, 0, 0])).toThrow(TypeError);
@@ -69,5 +83,13 @@ describe("robotics boundary guards", () => {
     expect(() => assertJointVector([0, 0, 0, 0, 0, 90])).toThrow(RangeError);
     expect(() => assertJointVector([0, 0, 0, 0, 0, 2 * Math.PI + 1e-9])).toThrow(RangeError);
     expect(() => assertJointVector([0, 0, 0, 0, 0, -2 * Math.PI])).not.toThrow();
+  });
+
+  it("rejects fully and partially sparse joint vectors", () => {
+    expect(() => assertJointVector(new Array(6))).toThrow(TypeError);
+
+    const partiallySparse = [0, 0, 0, 0, 0, 0];
+    delete partiallySparse[4];
+    expect(() => assertJointVector(partiallySparse)).toThrow(TypeError);
   });
 });

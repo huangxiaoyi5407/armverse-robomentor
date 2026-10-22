@@ -17,8 +17,12 @@ forward-kinematics, rendering, state, or Agent behavior was added.
   mixed model.
 - Accepted convention: standard DH
   `T_(i-1,i) = RotZ(theta_i) TransZ(d_i) TransX(a_i) RotX(alpha_i)`.
-  Joint `i` rotates about `z_(i-1)`; frame 0 is the robot base and frame 6 is the
-  flange. Every `a` and `d` value is a metre; every angle is a radian.
+  Row-major arrays store matrices that left-multiply column vectors, so
+  `p_(i-1) = T_(i-1,i) p_i`. Joint `i` rotates about `z_(i-1)`; `d_i` acts on
+  `z_(i-1)`, while `a_i` and `alpha_i` act along/about `x_i`. Frame 0 is the
+  robot base and frame 6 is the flange. A tool pose requires a separate
+  flange-to-tool transform. Every `a` and `d` value is a metre; every angle is
+  a radian.
 - Accepted boundary behavior: `assertFiniteVector` rejects non-arrays, wrong
   lengths, non-numbers, NaN, and either infinity. `assertJointVector` additionally
   rejects values outside the official +/-360-degree range after conversion to
@@ -114,3 +118,66 @@ git log -1 --format=%H -- docs/competition/prompt-history/002-ur5-model.md
 ```
 
 Expected subject: `feat: define validated UR5 robot model`.
+
+## Review correction 1 — sparse boundaries and pinned DH semantics
+
+Independent review found two defects in the initial Task 2 commit
+`92792e85540b0ff439cbe732253738ea36fcd42a`:
+
+1. `Array.prototype.every` and `forEach` skip sparse array slots, so fully or
+   partially sparse vectors could pass both runtime guards.
+2. The standard-DH formula used `TransX(a_i) RotX(alpha_i)` while field comments
+   incorrectly named `x_(i-1)`. Matrix storage/vector multiplication and flange
+   versus tool semantics were also not explicit enough for Task 3.
+
+Regression tests were added before the fix. Focused red evidence:
+
+```text
+npm run test:run -- src/robotics/ur5-model/model.test.ts
+❌ pins the matrix, vector, standard-DH, and flange-frame conventions
+❌ rejects fully and partially sparse finite vectors
+❌ rejects fully and partially sparse joint vectors
+Test Files  1 failed (1)
+Tests  3 failed | 11 passed (14)
+```
+
+The guards now inspect every numeric index with ordinary `for` loops. The type
+comments, model documentation, and an exact convention regression assertion now
+agree on row-major storage, column-vector multiplication, standard-DH axes,
+base-to-frame-6 flange meaning, and the separate tool transform.
+
+First correction green:
+
+```text
+npm run test:run -- src/robotics/ur5-model/model.test.ts
+✓ src/robotics/ur5-model/model.test.ts (14 tests)
+Test Files  1 passed (1)
+Tests  14 passed (14)
+```
+
+The final correction commit is resolved with the same `git log` command above.
+
+Correction verification:
+
+```text
+npm run test:run -- src/robotics/ur5-model/model.test.ts
+Test Files  1 passed (1); Tests  14 passed (14)
+
+npm run test:run
+Test Files  2 passed (2); Tests  16 passed (16)
+
+npm run lint
+> eslint . --max-warnings=0
+
+npm run build
+✓ Compiled successfully
+✓ Finished TypeScript
+✓ Generating static pages (3/3)
+
+git diff --check
+```
+
+All final commands exited 0. An earlier build launched in parallel with tests
+failed to create `.next/server/app/_global-error` with Windows `EPERM`; running
+the same build alone immediately passed, so no product/configuration workaround
+was added for that transient file-access conflict.
