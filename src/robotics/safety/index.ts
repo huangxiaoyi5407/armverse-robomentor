@@ -13,6 +13,7 @@ export interface SafetyEnvironment {
 }
 
 export type SafetyFindingCode =
+  | "IK_FAILURE"
   | "NON_FINITE_SAMPLE"
   | "JOINT_LIMIT"
   | "WORKSPACE_BOUNDS"

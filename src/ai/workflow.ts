@@ -22,17 +22,25 @@ export async function runTeachingWorkflow(command: string, snapshot: WorkflowSna
   transition("planning", "规划 Agent 正在将目标转换为受约束动作");
   const planned = await requestPlan(dependencies.provider, command, signal);
   abortIfNeeded(signal);
-  let trajectory: Trajectory;
+  let trajectory: Trajectory | null;
+  let planningFailure: SafetyReport | null = null;
   if (planned.plan.action === "move_pose") {
     const result = planCartesianLine(UR5_MODEL, snapshot.joints, { position: planned.plan.position, orientation: planned.plan.orientation }, { duration: 3, sampleCount: 31 });
-    if (result.status === "failed") trajectory = planJointTrajectory(snapshot.joints, snapshot.joints, { duration: 1, sampleCount: 2, mode: "cubic" });
-    else trajectory = result.trajectory;
+    if (result.status === "failed") {
+      trajectory = null;
+      planningFailure = Object.freeze({
+        verdict: "blocked",
+        findings: Object.freeze([{ code: "IK_FAILURE" as const, severity: "blocked" as const, sampleIndex: result.failedSample, message: result.failureReason }]),
+        validatedSamples: result.partialSamples.length,
+        approvedTrajectory: null,
+      });
+    } else trajectory = result.trajectory;
   } else {
     const target = planned.plan.action === "move_joints" ? planned.plan.joints : snapshot.joints;
     trajectory = planJointTrajectory(snapshot.joints, target, { duration: 3, sampleCount: 31, mode: "quintic" });
   }
   transition("validating", planned.fallback ? "规划输出无效，已采用安全 Demo 回退并进行确定性校验" : "确定性内核正在检查限位、工作空间、碰撞与奇异性");
-  const safety = validateTrajectory(UR5_MODEL, trajectory, snapshot.environment);
+  const safety = planningFailure ?? validateTrajectory(UR5_MODEL, trajectory!, snapshot.environment);
   transition("reviewing", "安全 Agent 正在解释确定性校验结果");
   await requestSafetyExplanation(dependencies.provider, safety, signal);
   const approved = safety.approvedTrajectory;

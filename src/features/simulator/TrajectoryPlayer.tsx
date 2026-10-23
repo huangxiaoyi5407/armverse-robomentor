@@ -11,10 +11,11 @@ export function TrajectoryPlayer() {
   const play = useSimulationStore((state) => state.play);
   const pause = useSimulationStore((state) => state.pause);
   const cancel = useSimulationStore((state) => state.cancel);
+  const advance = useSimulationStore((state) => state.advanceTrajectory);
 
   useEffect(() => {
     if (status !== "playing" || !preview || operationId === null) return;
-    const started = performance.now();
+    const started = performance.now() - useSimulationStore.getState().playbackTime * 1000;
     let frame = 0;
     const tick = (now: number) => {
       if (useSimulationStore.getState().activeOperationId !== operationId ||
@@ -23,11 +24,12 @@ export function TrajectoryPlayer() {
         commit(operationId);
         return;
       }
+      advance(operationId, (now - started) / 1000);
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [commit, operationId, preview, status]);
+  }, [advance, commit, operationId, preview, status]);
   if (!preview || operationId === null) return null;
   return <div className="trajectory-player" aria-label="轨迹播放控制">
     <button type="button" onClick={() => play(operationId)} disabled={status === "playing"}>播放轨迹</button>

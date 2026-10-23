@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AIProvider } from "./providers/types";
+import type { AgentResponse } from "./schemas";
 import { runTeachingWorkflow } from "./workflow";
 
 const snapshot = { joints: [0.2, -0.8, 1, -0.4, 0.6, -0.2] as const, environment: { obstacles: [] } };
@@ -47,6 +48,19 @@ describe("three-agent teaching workflow", () => {
     const result = await runTeachingWorkflow("移动", snapshot, { provider: invalidProvider }, new AbortController().signal);
     expect(result.modeLabel).toContain("规划回退");
     expect(result.timeline.find((entry) => entry.state === "validating")?.message).toContain("回退");
+  });
+
+  it("blocks an unreachable Cartesian plan instead of reporting a zero-motion success", async () => {
+    const unreachable = provider();
+    const originalRun = unreachable.run;
+    const unreachablePlan: AgentResponse = { agent: "planner", mode: "online", label: "online", result: { action: "move_pose", position: [9, 9, 9], orientation: [0, 0, 0, 1], rationale: "test" } };
+    unreachable.run = vi.fn(async (request, signal) => request.agent === "planner"
+      ? unreachablePlan
+      : originalRun(request, signal));
+    const result = await runTeachingWorkflow("移动到不可达位置", snapshot, { provider: unreachable }, new AbortController().signal);
+    expect(result.outcome).toBe("blocked");
+    expect(result.trajectory).toBeNull();
+    expect(result.safety.findings.map((finding) => finding.code)).toContain("IK_FAILURE");
   });
 
   it("honours abort before any agent work", async () => {

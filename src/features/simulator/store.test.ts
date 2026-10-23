@@ -34,6 +34,18 @@ describe("simulation store", () => {
     expect(useSimulationStore.getState().status).toBe("cancelled");
   });
 
+  it("advances through intermediate trajectory samples before completion", () => {
+    const { trajectory, report } = approved();
+    const operationId = useSimulationStore.getState().previewTrajectory(trajectory, report);
+    useSimulationStore.getState().play(operationId);
+    useSimulationStore.getState().advanceTrajectory(operationId, 0.5);
+    const midpoint = useSimulationStore.getState();
+    expect(midpoint.status).toBe("playing");
+    expect(midpoint.joints).not.toEqual(INITIAL_JOINTS);
+    expect(midpoint.joints).not.toEqual(END);
+    expect(midpoint.playbackTime).toBe(0.5);
+  });
+
   it("ignores stale completion and commits only the current safe operation", () => {
     const first = approved();
     const firstId = useSimulationStore.getState().previewTrajectory(first.trajectory, first.report);

@@ -6,7 +6,7 @@
 
 | 命令 | 结果 |
 | --- | --- |
-| `npm run test:run` | 14 个测试文件、126 个测试通过 |
+| `npm run test:run` | 14 个测试文件、128 个测试通过 |
 | `npm run test:e2e` | 3 条 Chrome 验收路径通过 |
 | `npm run lint` | 通过，零 warning |
 | `npm run build` | 通过；静态首页及动态 `/api/agent` 路由生成成功 |
@@ -18,7 +18,7 @@
 
 - 场景：打开三维 UR5，求解默认可达 IK 目标并播放 3 秒轨迹，继续观察至满 5 秒。
 - 方法：真实 Chrome 页面通过 `requestAnimationFrame` 统计五秒窗口。
-- 最终复验结果：295 帧 / 5007.4 ms，平均 **58.9 FPS**，达到至少 30 FPS 的验收目标（此前一次为 59.0 FPS）。
+- 最终复验结果：293 帧 / 5005.8 ms，平均 **58.5 FPS**，达到至少 30 FPS 的验收目标。
 - 环境：Intel64 Family 6 Model 197 Stepping 2；32 GB 内存；Intel Arc 140T GPU（系统报告 16 GB）；Chrome 156.0.8078.47。
 
 Three.js 输出一条 `THREE.Clock` 已弃用警告，来自依赖内部，不影响功能或验收结果。
