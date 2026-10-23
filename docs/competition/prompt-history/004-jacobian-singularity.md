@@ -126,11 +126,10 @@ expected minSingularValue 0; received 1.4142135623730952e-8
 ```
 
 The solver now handles an all-zero matrix before scaling, normalizes every
-nonzero `J J^T`, and ranks/stops pivots using
+nonzero `J J^T`, and measures pivots using
 `|a_pq| / sqrt(|a_pp * a_qq|)`. This preserves small blocks that are significant
 relative to their own diagonal entries even when unrelated identity-scale rows
-exist. The iteration limit was also renamed from “sweeps” to “rotations” to
-match the actual maximum-pivot algorithm.
+exist.
 
 Focused correction green: 21/21 tests passed.
 
@@ -139,3 +138,31 @@ build passed. The first build attempt encountered a transient Windows `EPERM`
 while creating a generated `.next` segment directory; inspection found no
 source/configuration failure, and an unchanged immediate rerun completed all
 three static pages successfully.
+
+## Review correction 2 — bounded complete Jacobi sweeps
+
+The first correction still allowed a legitimate dense known-spectrum Jacobian
+to exhaust a budget of 100 maximum-pivot rotations under the strict local
+criterion. The fixed matrix has independently constructed singular values
+`[1e-5, 0.11, 0.39, 0.73, 1.17, 2.03]`. A regression was added first and the
+focused red run produced five failures: the base dense fixture plus uniform
+scales `1e-40`, `1e-8`, `1`, and `1e40` all threw the solver's non-convergence
+error (23 tests still passed).
+
+The solver now performs at most 50 complete cyclic sweeps (15 joint pairs per
+sweep), rather than counting isolated maximum-pivot rotations. Before each
+sweep it checks both that the off-diagonal norm is exactly zero or that every
+pair is small relative to its participating diagonal values. During a sweep it
+visits every pair whose local relative magnitude exceeds `1e-12`. This keeps
+the scale-sensitive protection from correction 1 while providing a coherent
+bounded convergence budget for dense 6 x 6 inputs.
+
+Regression coverage now includes the fixed known-spectrum matrix, dense exact
+and near-rank-deficient variants, and the four uniform scales. Focused green:
+28/28 tests passed. The full suite passed 65/65 and lint exited 0. The first
+post-change build revealed TypeScript-only tuple assertions in the new tests;
+they were corrected without changing runtime behavior. Two subsequent builds
+were blocked by Windows `EPERM` on stale generated `.next` directories. After
+verifying the resolved target was the ignored workspace-local `.next` folder,
+that generated output alone was removed; a clean production build then
+compiled, type-checked, and generated 3/3 static pages.

@@ -9,6 +9,14 @@ import {
 import { UR5_MODEL } from "@/robotics/ur5-model";
 
 const STEP = 1e-6;
+const DENSE_KNOWN_SPECTRUM: Matrix6 = Object.freeze([
+  Object.freeze([0.7072402178835736, 0.14244774484389172, 0.261563649896346, -0.13135088814658902, -0.221607650429398, 0.04130687120441276] as const),
+  Object.freeze([0.14244774484389178, 0.5615450031897512, -0.05475805199022189, -0.17936051929694813, -0.3460525437604074, 0.3458368233458623] as const),
+  Object.freeze([0.26156364989634606, -0.05475805199022192, 0.522432097085423, -0.10269133726730913, 0.08931379467847983, 0.1900518242916867] as const),
+  Object.freeze([-0.13135088814658902, -0.1793605192969481, -0.10269133726730914, 0.46263494998697, -0.47571877873789453, -0.23824678901456275] as const),
+  Object.freeze([-0.22160765042939795, -0.3460525437604074, 0.08931379467847983, -0.4757187787378945, 1.783128820729953, 0.07863624489153473] as const),
+  Object.freeze([0.04130687120441274, 0.34583682334586224, 0.1900518242916867, -0.23824678901456273, 0.07863624489153473, 0.3930289111243286] as const),
+]);
 
 function finiteDifferenceColumn(joints: readonly number[], joint: number): readonly number[] {
   const plus = [...joints];
@@ -114,6 +122,46 @@ describe("singularityMetrics", () => {
       risk: "singular",
     });
   });
+
+  it("converges for a dense Jacobian with an independently known spectrum", () => {
+    const knownSingularValues = [1e-5, 0.11, 0.39, 0.73, 1.17, 2.03];
+    const expectedManipulability = knownSingularValues.reduce((product, value) => product * value, 1);
+    const metrics = singularityMetrics(DENSE_KNOWN_SPECTRUM);
+
+    expect(metrics.minSingularValue).toBeCloseTo(knownSingularValues[0], 9);
+    expect(metrics.manipulability / expectedManipulability).toBeCloseTo(1, 6);
+    expect(metrics.risk).toBe("singular");
+  });
+
+  it.each([
+    { label: "exact", epsilon: 0 },
+    { label: "near", epsilon: 1e-8 },
+  ])("returns finite metrics for a dense $label rank-deficient Jacobian", ({ epsilon }) => {
+    const rows = DENSE_KNOWN_SPECTRUM.map((row) => [...row]);
+    rows[1] = rows[0].map((value, column) => value + epsilon * DENSE_KNOWN_SPECTRUM[1][column]);
+    const metrics = singularityMetrics(rows as unknown as Matrix6);
+
+    expect(Number.isFinite(metrics.minSingularValue)).toBe(true);
+    expect(Number.isFinite(metrics.manipulability)).toBe(true);
+    expect(metrics.minSingularValue).toBeGreaterThanOrEqual(0);
+    expect(metrics.manipulability).toBeGreaterThanOrEqual(0);
+    expect(metrics.risk).toBe("singular");
+  });
+
+  it.each([1e-40, 1e-8, 1, 1e40])(
+    "keeps dense metrics finite under uniform scale %s",
+    (scale) => {
+      const scaled = DENSE_KNOWN_SPECTRUM.map((row) =>
+        row.map((value) => value * scale),
+      ) as unknown as Matrix6;
+      const metrics = singularityMetrics(scaled);
+
+      expect(Number.isFinite(metrics.minSingularValue)).toBe(true);
+      expect(Number.isFinite(metrics.manipulability)).toBe(true);
+      expect(metrics.minSingularValue).toBeGreaterThanOrEqual(0);
+      expect(metrics.manipulability).toBeGreaterThanOrEqual(0);
+    },
+  );
 
   it("applies explicit singular and warning boundaries deterministically", () => {
     const diagonal = (smallest: number): Matrix6 => Object.freeze([

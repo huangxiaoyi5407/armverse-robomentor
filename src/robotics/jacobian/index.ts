@@ -2,8 +2,8 @@ import { forwardKinematics } from "@/robotics/kinematics";
 import type { JointVector, Matrix4, RobotModel } from "@/robotics/types";
 
 const SIZE = 6;
-const JACOBI_MAX_ROTATIONS = 100;
-const JACOBI_RELATIVE_TOLERANCE = 1e-14;
+const JACOBI_MAX_SWEEPS = 50;
+const JACOBI_RELATIVE_TOLERANCE = 1e-12;
 const NEGATIVE_EIGENVALUE_RELATIVE_TOLERANCE = 1e-12;
 
 /**
@@ -113,46 +113,56 @@ function symmetricEigenvalues(matrix: readonly (readonly number[])[]): readonly 
   // controlling the smallest eigenvalue is far below one in absolute units.
   const work = matrix.map((row) => row.map((value) => value / matrixScale));
 
-  for (let rotation = 0; rotation < JACOBI_MAX_ROTATIONS; rotation += 1) {
-    let p = 0;
-    let q = 1;
-    let largestRelative = 0;
+  for (let sweep = 0; sweep < JACOBI_MAX_SWEEPS; sweep += 1) {
+    let maxRelative = 0;
+    let offDiagonalSquared = 0;
     for (let row = 0; row < SIZE; row += 1) {
       for (let column = row + 1; column < SIZE; column += 1) {
         const magnitude = Math.abs(work[row][column]);
+        offDiagonalSquared += 2 * magnitude * magnitude;
         const localScale = Math.sqrt(Math.abs(work[row][row] * work[column][column]));
         const relativeMagnitude = localScale === 0
           ? (magnitude === 0 ? 0 : Number.POSITIVE_INFINITY)
           : magnitude / localScale;
-        if (relativeMagnitude > largestRelative) {
-          largestRelative = relativeMagnitude;
-          p = row;
-          q = column;
-        }
+        maxRelative = Math.max(maxRelative, relativeMagnitude);
       }
     }
-    if (largestRelative <= JACOBI_RELATIVE_TOLERANCE) {
+    if (offDiagonalSquared === 0 || maxRelative <= JACOBI_RELATIVE_TOLERANCE) {
       return work.map((row, index) => row[index] * matrixScale);
     }
 
-    const angle = 0.5 * Math.atan2(2 * work[p][q], work[q][q] - work[p][p]);
-    const cosine = Math.cos(angle);
-    const sine = Math.sin(angle);
-    const app = work[p][p];
-    const aqq = work[q][q];
-    const apq = work[p][q];
-    work[p][p] = cosine * cosine * app - 2 * sine * cosine * apq + sine * sine * aqq;
-    work[q][q] = sine * sine * app + 2 * sine * cosine * apq + cosine * cosine * aqq;
-    work[p][q] = 0;
-    work[q][p] = 0;
-    for (let index = 0; index < SIZE; index += 1) {
-      if (index === p || index === q) continue;
-      const aip = work[index][p];
-      const aiq = work[index][q];
-      work[index][p] = cosine * aip - sine * aiq;
-      work[p][index] = work[index][p];
-      work[index][q] = sine * aip + cosine * aiq;
-      work[q][index] = work[index][q];
+    // A complete cyclic sweep visits every off-diagonal pair. This bounded
+    // strategy converges reliably for dense 6 x 6 inputs while the local
+    // relative guard retains small but structurally important blocks.
+    for (let p = 0; p < SIZE - 1; p += 1) {
+      for (let q = p + 1; q < SIZE; q += 1) {
+        const magnitude = Math.abs(work[p][q]);
+        const localScale = Math.sqrt(Math.abs(work[p][p] * work[q][q]));
+        const relativeMagnitude = localScale === 0
+          ? (magnitude === 0 ? 0 : Number.POSITIVE_INFINITY)
+          : magnitude / localScale;
+        if (relativeMagnitude <= JACOBI_RELATIVE_TOLERANCE) continue;
+
+        const angle = 0.5 * Math.atan2(2 * work[p][q], work[q][q] - work[p][p]);
+        const cosine = Math.cos(angle);
+        const sine = Math.sin(angle);
+        const app = work[p][p];
+        const aqq = work[q][q];
+        const apq = work[p][q];
+        work[p][p] = cosine * cosine * app - 2 * sine * cosine * apq + sine * sine * aqq;
+        work[q][q] = sine * sine * app + 2 * sine * cosine * apq + cosine * cosine * aqq;
+        work[p][q] = 0;
+        work[q][p] = 0;
+        for (let index = 0; index < SIZE; index += 1) {
+          if (index === p || index === q) continue;
+          const aip = work[index][p];
+          const aiq = work[index][q];
+          work[index][p] = cosine * aip - sine * aiq;
+          work[p][index] = work[index][p];
+          work[index][q] = sine * aip + cosine * aiq;
+          work[q][index] = work[index][q];
+        }
+      }
     }
   }
   throw new RangeError("Singular-value calculation did not converge.");
