@@ -133,3 +133,36 @@ Generating static pages (3/3)
 After committing, `git show --check HEAD` and the task commit range are checked
 for whitespace. The live Git hash is recorded in the execution report so this
 pre-commit evidence file does not invent a future hash.
+
+## Independent review correction — meaningful option floors and final history
+
+Review reproduced a reachable target falsely labelled `STALLED_AT_LIMITS` when
+`stepSize: Number.MIN_VALUE` was accepted: the update rounded to zero without a
+joint limit causing it. It also found that positive-but-subnormal damping could
+square to zero, and that `MAX_ITERATIONS` omitted its final evaluated state from
+history.
+
+Regression tests were added first. Focused red:
+
+```text
+Test Files  1 failed (1)
+Tests  5 failed | 21 passed (26)
+```
+
+Four failures proved subnormal position tolerance, orientation tolerance,
+damping, and step size were accepted. The fifth proved history iteration 0 was
+returned beside a result evaluated at iteration 1.
+
+Accepted documented lower bounds are `1e-9 m`, `1e-9 rad`, `1e-6` damping, and
+`1e-6` step size. They remain far tighter than the teaching acceptance targets
+while preventing meaningless double-precision configuration. A zero actual
+step is now `STALLED_AT_LIMITS` only when a meaningful unconstrained proposal
+was removed by clamping; otherwise it is the distinct `NUMERIC_STALL` code.
+The maximum-iteration branch appends or replaces the bounded history's last
+slot with the final joints/errors at zero step.
+
+Correction green: focused 26/26 and full suite 91/91. Lint passed. Production
+build was attempted twice but Windows denied creation of different generated
+`.next` directories with `EPERM`; compilation did not reach source/type-check,
+and the previously unchanged production build had passed before this narrow
+runtime/test correction.

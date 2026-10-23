@@ -167,6 +167,12 @@ describe("solveInverseKinematics", () => {
     expect(result.status).toBe("failed");
     expect(result.failureCode).toBe("MAX_ITERATIONS");
     expect(result.iterations).toBe(1);
+    const finalEntry = result.history.at(-1);
+    expect(finalEntry?.iteration).toBe(result.iterations);
+    expect(finalEntry?.joints).toEqual(result.joints);
+    expect(finalEntry?.positionError).toBe(result.positionError);
+    expect(finalEntry?.orientationError).toBe(result.orientationError);
+    expect(finalEntry?.stepNorm).toBe(0);
   });
 
   it("is deterministic, deeply immutable, and never mutates caller inputs", () => {
@@ -214,6 +220,10 @@ describe("solveInverseKinematics", () => {
     ["damping", -0.1],
     ["stepSize", 1.1],
     ["maxHistoryEntries", 0],
+    ["positionTolerance", Number.MIN_VALUE],
+    ["orientationTolerance", Number.MIN_VALUE],
+    ["damping", Number.MIN_VALUE],
+    ["stepSize", Number.MIN_VALUE],
   ])("rejects invalid option %s=%s", (name, value) => {
     expect(() => solveInverseKinematics(
       UR5_MODEL,

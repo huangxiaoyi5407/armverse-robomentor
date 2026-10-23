@@ -6,6 +6,12 @@ import { forwardKinematics } from "./forward";
 const SIZE = 6;
 const PIVOT_EPSILON = 1e-14;
 const QUATERNION_EPSILON = 1e-15;
+// Below these scales, double-precision updates or requested residuals are not
+// meaningful for a metre/radian educational UR5 simulation.
+const MIN_POSITION_TOLERANCE = 1e-9;
+const MIN_ORIENTATION_TOLERANCE = 1e-9;
+const MIN_DAMPING = 1e-6;
+const MIN_STEP_SIZE = 1e-6;
 
 export interface IKOptions {
   readonly maxIterations: number;
@@ -16,7 +22,11 @@ export interface IKOptions {
   readonly maxHistoryEntries: number;
 }
 
-export type IKFailureCode = "MAX_ITERATIONS" | "STALLED_AT_LIMITS" | "NUMERIC_FAILURE";
+export type IKFailureCode =
+  | "MAX_ITERATIONS"
+  | "STALLED_AT_LIMITS"
+  | "NUMERIC_STALL"
+  | "NUMERIC_FAILURE";
 
 export interface IKHistoryEntry {
   readonly iteration: number;
@@ -87,18 +97,18 @@ function validateOptions(options: Partial<IKOptions> | undefined): IKOptions {
     throw new TypeError("IK options must be an object.");
   }
   const merged = { ...DEFAULT_OPTIONS, ...options };
-  const positiveFinite = (name: keyof IKOptions, upper: number): void => {
+  const boundedFinite = (name: keyof IKOptions, lower: number, upper: number): void => {
     const value = merged[name];
-    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0 || value > upper) {
-      throw new RangeError(`IK option ${name} must be finite within (0, ${upper}].`);
+    if (typeof value !== "number" || !Number.isFinite(value) || value < lower || value > upper) {
+      throw new RangeError(`IK option ${name} must be finite within [${lower}, ${upper}].`);
     }
   };
-  positiveFinite("positionTolerance", 0.1);
-  positiveFinite("orientationTolerance", Math.PI);
-  positiveFinite("damping", 10);
-  positiveFinite("stepSize", 1);
-  positiveFinite("maxIterations", 10_000);
-  positiveFinite("maxHistoryEntries", 1_000);
+  boundedFinite("positionTolerance", MIN_POSITION_TOLERANCE, 0.1);
+  boundedFinite("orientationTolerance", MIN_ORIENTATION_TOLERANCE, Math.PI);
+  boundedFinite("damping", MIN_DAMPING, 10);
+  boundedFinite("stepSize", MIN_STEP_SIZE, 1);
+  boundedFinite("maxIterations", 1, 10_000);
+  boundedFinite("maxHistoryEntries", 1, 1_000);
   if (!Number.isInteger(merged.maxIterations) || !Number.isInteger(merged.maxHistoryEntries)) {
     throw new RangeError("IK iteration and history limits must be integers.");
   }
@@ -247,7 +257,12 @@ export function solveInverseKinematics(
           history, null, null,
         );
       }
-      if (iteration === settings.maxIterations) break;
+      if (iteration === settings.maxIterations) {
+        appendBounded(history, freezeEntry(
+          iteration, joints, lastPositionError, lastOrientationError, 0,
+        ), settings.maxHistoryEntries);
+        break;
+      }
       jacobian = geometricJacobian(model, joints as unknown as JointVector);
 
       const error = [...positionVector, ...rotationVector];
@@ -272,6 +287,7 @@ export function solveInverseKinematics(
         return settings.stepSize * value;
       });
       if (!delta.every(Number.isFinite)) throw new RangeError();
+      const proposedStepNorm = Math.hypot(...delta);
       const candidate = delta.map((value, joint) => Math.min(
         model.jointLimits[joint].max,
         Math.max(model.jointLimits[joint].min, joints[joint] + value),
@@ -282,9 +298,14 @@ export function solveInverseKinematics(
         iteration, joints, lastPositionError, lastOrientationError, stepNorm,
       ), settings.maxHistoryEntries);
       if (stepNorm <= 1e-14) {
+        const clampingRemovedMotion = proposedStepNorm > 1e-14;
         return finish(
           "failed", joints, iteration, lastPositionError, lastOrientationError,
-          history, "STALLED_AT_LIMITS", "Joint limits prevented any further finite update.",
+          history,
+          clampingRemovedMotion ? "STALLED_AT_LIMITS" : "NUMERIC_STALL",
+          clampingRemovedMotion
+            ? "Joint limits prevented the proposed finite update."
+            : "The unconstrained numerical update was below useful floating-point resolution.",
         );
       }
       joints = candidate;
