@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MatrixPanel } from "@/features/control-panel/MatrixPanel";
 import { TelemetryPanel } from "@/features/control-panel/TelemetryPanel";
+import { WorkflowPanel } from "@/features/agent-workflow/WorkflowPanel";
 import { ExperimentPanel } from "@/features/lessons/ExperimentPanel";
 import { LESSONS } from "@/features/lessons/lesson-data";
 import { changeLesson, LessonPanel } from "@/features/lessons/LessonPanel";
@@ -22,7 +23,7 @@ export default function HomePage() {
     <header className="lab-header"><div><p className="eyebrow">AUTOMATION DIGITAL TWIN LAB · UR5</p><h1>RoboMentor UR5</h1></div><p role="status" aria-label="运行模式" className="mode-status"><span />Demo 演示模式 · 无需 AI 密钥</p></header>
     <div className="workbench">
       <LessonPanel lessons={LESSONS} activeId={activeLesson.id} onSelect={selectLesson} />
-      <div className="simulation-column"><RobotScene /><ExperimentPanel lesson={activeLesson} /></div>
+      <div className="simulation-column"><RobotScene /><ExperimentPanel lesson={activeLesson} /><WorkflowPanel /></div>
       <aside className="instrument-rack" aria-label="数据仪表架"><TelemetryPanel /><MatrixPanel /></aside>
     </div>
     <footer className="lab-footer"><span>确定性运动学内核</span><span>SI 单位制</span><span>安全优先执行链</span></footer>
