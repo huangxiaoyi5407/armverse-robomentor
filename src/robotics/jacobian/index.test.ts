@@ -97,6 +97,24 @@ describe("singularityMetrics", () => {
     });
   });
 
+  it("resolves a small non-diagonal rank-deficient block instead of accepting its diagonal", () => {
+    const scale = 1e-8;
+    const jacobian = Object.freeze([
+      Object.freeze([scale, scale, 0, 0, 0, 0]),
+      Object.freeze([scale, scale, 0, 0, 0, 0]),
+      Object.freeze([0, 0, 1, 0, 0, 0]),
+      Object.freeze([0, 0, 0, 1, 0, 0]),
+      Object.freeze([0, 0, 0, 0, 1, 0]),
+      Object.freeze([0, 0, 0, 0, 0, 1]),
+    ]) as Matrix6;
+
+    expect(singularityMetrics(jacobian)).toEqual({
+      minSingularValue: 0,
+      manipulability: 0,
+      risk: "singular",
+    });
+  });
+
   it("applies explicit singular and warning boundaries deterministically", () => {
     const diagonal = (smallest: number): Matrix6 => Object.freeze([
       Object.freeze([smallest, 0, 0, 0, 0, 0]),

@@ -24,7 +24,10 @@ trajectory planning, safety rules, UI, or Agent behavior was added.
 - Accepted numerical policy: exact zero stays zero; eigenvalues within
   `1e-12 * largestEigenvalue` below zero are treated as round-off and clamped;
   materially negative eigenvalues, non-convergence, overflow, malformed shape,
-  sparse entries, and non-finite entries throw. Inputs are never mutated.
+  sparse entries, and non-finite entries throw. Jacobi iteration first safely
+  scales a nonzero matrix, then selects pivots and stops by the off-diagonal
+  value relative to its two diagonal entries; it does not impose an absolute
+  floor that can hide a small rank-deficient block. Inputs are never mutated.
 - Rejected: finite-difference Jacobians in production, using frame 1 for joint
   1, angular-first row order, silent repair of malformed data, UI coupling, and
   introducing Math.js only for singular-value calculation.
@@ -102,3 +105,37 @@ git show --check HEAD
 The expected subject is `feat: calculate Jacobian and singularity risk`; the
 live hash printed by Git is authoritative and avoids placing a pre-commit hash
 in this file.
+
+## Review correction 1 — scale-aware Jacobi convergence
+
+Independent review found that the initial solver used
+`max(1, maxAbsEntry) * 1e-14` as an absolute convergence floor. For a matrix
+whose leading 2 x 2 Jacobian block contains four `1e-8` values and whose other
+four diagonal entries are one, the two leading rows are exactly identical, but
+the solver skipped the `2e-16` off-diagonal entry of `J J^T`. It incorrectly
+returned minimum singular value `1.4142135623730952e-8` and manipulability
+`2.0000000000000005e-16` instead of exact zeros.
+
+A regression test was added first. Red result:
+
+```text
+npm run test:run -- src/robotics/jacobian/index.test.ts
+Test Files  1 failed (1)
+Tests  1 failed | 20 passed (21)
+expected minSingularValue 0; received 1.4142135623730952e-8
+```
+
+The solver now handles an all-zero matrix before scaling, normalizes every
+nonzero `J J^T`, and ranks/stops pivots using
+`|a_pq| / sqrt(|a_pp * a_qq|)`. This preserves small blocks that are significant
+relative to their own diagonal entries even when unrelated identity-scale rows
+exist. The iteration limit was also renamed from “sweeps” to “rotations” to
+match the actual maximum-pivot algorithm.
+
+Focused correction green: 21/21 tests passed.
+
+Final correction verification: full suite 58/58, lint exit 0, and production
+build passed. The first build attempt encountered a transient Windows `EPERM`
+while creating a generated `.next` segment directory; inspection found no
+source/configuration failure, and an unchanged immediate rerun completed all
+three static pages successfully.

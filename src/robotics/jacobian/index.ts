@@ -2,7 +2,7 @@ import { forwardKinematics } from "@/robotics/kinematics";
 import type { JointVector, Matrix4, RobotModel } from "@/robotics/types";
 
 const SIZE = 6;
-const JACOBI_MAX_SWEEPS = 100;
+const JACOBI_MAX_ROTATIONS = 100;
 const JACOBI_RELATIVE_TOLERANCE = 1e-14;
 const NEGATIVE_EIGENVALUE_RELATIVE_TOLERANCE = 1e-12;
 
@@ -105,25 +105,34 @@ function validateMatrix6(value: unknown): asserts value is Matrix6 {
 }
 
 function symmetricEigenvalues(matrix: readonly (readonly number[])[]): readonly number[] {
-  const work = matrix.map((row) => [...row]);
-  const scale = Math.max(1, ...work.flat().map(Math.abs));
+  const matrixScale = Math.max(...matrix.flat().map(Math.abs));
+  if (matrixScale === 0) {
+    return Object.freeze(Array<number>(SIZE).fill(0));
+  }
+  // Normalize before iteration so convergence is relative even when the block
+  // controlling the smallest eigenvalue is far below one in absolute units.
+  const work = matrix.map((row) => row.map((value) => value / matrixScale));
 
-  for (let sweep = 0; sweep < JACOBI_MAX_SWEEPS; sweep += 1) {
+  for (let rotation = 0; rotation < JACOBI_MAX_ROTATIONS; rotation += 1) {
     let p = 0;
     let q = 1;
-    let largest = 0;
+    let largestRelative = 0;
     for (let row = 0; row < SIZE; row += 1) {
       for (let column = row + 1; column < SIZE; column += 1) {
         const magnitude = Math.abs(work[row][column]);
-        if (magnitude > largest) {
-          largest = magnitude;
+        const localScale = Math.sqrt(Math.abs(work[row][row] * work[column][column]));
+        const relativeMagnitude = localScale === 0
+          ? (magnitude === 0 ? 0 : Number.POSITIVE_INFINITY)
+          : magnitude / localScale;
+        if (relativeMagnitude > largestRelative) {
+          largestRelative = relativeMagnitude;
           p = row;
           q = column;
         }
       }
     }
-    if (largest <= JACOBI_RELATIVE_TOLERANCE * scale) {
-      return work.map((row, index) => row[index]);
+    if (largestRelative <= JACOBI_RELATIVE_TOLERANCE) {
+      return work.map((row, index) => row[index] * matrixScale);
     }
 
     const angle = 0.5 * Math.atan2(2 * work[p][q], work[q][q] - work[p][p]);
