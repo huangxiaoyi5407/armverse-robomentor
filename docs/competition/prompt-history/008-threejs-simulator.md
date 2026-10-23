@@ -1,5 +1,7 @@
 # Prompt record 008 — Three.js simulator
 
+> Git evidence: `d22e14f`.
+
 Date: 2026-10-23
 
 ## Goal

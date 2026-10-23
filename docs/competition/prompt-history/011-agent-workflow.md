@@ -1,5 +1,7 @@
 # 011 — 三 Agent 安全教学工作流
 
+> Git evidence: `7de0b1d`.
+
 ## 目标提示
 
 实现规划 Agent、安全讲解 Agent、教学 Agent 的串行协作，并以可访问时间线展示全过程。模型负责理解和解释，轨迹生成与安全放行必须由确定性机器人算法完成；只有 `approvedTrajectory` 可以进入仿真状态。

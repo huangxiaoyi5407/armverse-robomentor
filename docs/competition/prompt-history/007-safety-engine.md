@@ -1,5 +1,7 @@
 # Prompt record 007 — deterministic safety engine
 
+> Git evidence: `f930025`.
+
 Date: 2026-10-23
 
 ## Prompt and intention

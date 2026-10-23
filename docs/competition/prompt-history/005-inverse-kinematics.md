@@ -1,5 +1,7 @@
 # 005 — Damped least-squares inverse kinematics
 
+> Git evidence: `3f3d894` (implementation), `b994922` (boundary and diagnostic hardening).
+
 Date: 2026-10-23. Task: implement deterministic bounded numerical IK for the
 classic UR5 using the existing forward kinematics and geometric Jacobian. No
 trajectory, safety, simulator, UI, or Agent workflow behavior was added.

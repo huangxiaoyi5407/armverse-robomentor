@@ -1,5 +1,7 @@
 # Prompt record 006 — trajectory planning
 
+> Git evidence: `9307a21`.
+
 Date: 2026-10-23
 
 ## Goal and constraints
