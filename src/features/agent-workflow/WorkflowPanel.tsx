@@ -16,6 +16,7 @@ const httpProvider: AIProvider = { async run(request: AgentRequest, signal: Abor
 
 export function WorkflowPanel() {
   const [command, setCommand] = useState("将机械臂移动到安全教学姿态，并解释运动学变化");
+  const [challengeObstacle, setChallengeObstacle] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const { running, timeline, summary } = useStore(workflowStore);
   const joints = useSimulationStore((state) => state.joints);
@@ -27,7 +28,8 @@ export function WorkflowPanel() {
     controller.current = new AbortController();
     const operationId = workflowStore.getState().begin(command);
     try {
-      const result = await runTeachingWorkflow(command, { joints, environment: { obstacles: [] } }, { provider: httpProvider, onTransition: (entry) => workflowStore.getState().append(operationId, entry) }, controller.current.signal);
+      const obstacles = challengeObstacle ? [{ id: "教学安全挑战区", min: [-1, -1, -1] as const, max: [1, 1, 1] as const }] : [];
+      const result = await runTeachingWorkflow(command, { joints, environment: { obstacles } }, { provider: httpProvider, onTransition: (entry) => workflowStore.getState().append(operationId, entry) }, controller.current.signal);
       if (result.trajectory) previewTrajectory(result.trajectory, result.safety);
       workflowStore.getState().complete(operationId, { outcome: result.outcome, label: result.modeLabel });
     } catch (error) {
@@ -37,7 +39,7 @@ export function WorkflowPanel() {
 
   return <section className="workflow-panel" aria-label="三 Agent 教学工作流">
     <div className="workflow-intro"><p className="panel-kicker">THREE-AGENT PIPELINE</p><h2>智能任务协同台</h2><p>规划提出动作，安全内核拥有否决权，教学 Agent 解释真实结果。</p></div>
-    <form className="command-form" onSubmit={submit}><label htmlFor="agent-command">实验指令</label><div><input id="agent-command" value={command} onChange={(event) => setCommand(event.currentTarget.value)} maxLength={500} required /><button type="submit" disabled={running}>{running ? "协同处理中…" : "启动三 Agent"}</button></div></form>
+    <form className="command-form" onSubmit={submit}><label htmlFor="agent-command">实验指令</label><div><input id="agent-command" value={command} onChange={(event) => setCommand(event.currentTarget.value)} maxLength={500} required /><button type="submit" disabled={running}>{running ? "协同处理中…" : "启动三 Agent"}</button></div><label className="challenge-toggle"><input type="checkbox" checked={challengeObstacle} onChange={(event) => setChallengeObstacle(event.currentTarget.checked)} />启用安全挑战障碍物</label></form>
     <div className="workflow-timeline" aria-live="polite">
       {timeline.length === 0 ? <p className="timeline-empty">输入目标后，这里会展示每个 Agent 与确定性安全门的工作证据。</p> : timeline.map((entry, index) => <div className={`timeline-step ${entry.state}`} key={`${index}-${entry.state}`}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{entry.state.toUpperCase()}</strong><p>{entry.message}</p></div></div>)}
     </div>

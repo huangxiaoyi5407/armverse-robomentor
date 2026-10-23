@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Grid, OrbitControls } from "@react-three/drei";
 import { JointControls } from "./JointControls";
+import { IKTargetControls } from "./IKTargetControls";
 import { TrajectoryPlayer } from "./TrajectoryPlayer";
 import { UR5Arm } from "./UR5Arm";
 import { useSimulationStore } from "./store";
@@ -51,6 +52,7 @@ export function RobotScene() {
           </label>
           {showFrames ? <span>坐标系已显示</span> : null}
         </div>
+        <IKTargetControls />
         <JointControls joints={joints} onChange={setJoint} />
       </div>
       <TrajectoryPlayer />

@@ -38,3 +38,21 @@ CAD model, image, logo, spreadsheet, or document text is redistributed.
   teaching; the source documents and their expressive content are not copied or
   bundled. Universal Robots and UR5 are names of their respective owner; this
   project is not endorsed by or affiliated with Universal Robots A/S.
+
+## Software dependencies
+
+Exact transitive versions are fixed by `package-lock.json`. Primary runtime and test dependencies are:
+
+| Package | Version verified | Purpose | Licence |
+| --- | --- | --- | --- |
+| Next.js | 16.4.2 | Web framework and server route | MIT |
+| React / React DOM | 19.3.1 | Interface rendering | MIT |
+| Three.js | 0.186.1 | 3D scene | MIT |
+| React Three Fiber | 9.8.2 | React renderer for Three.js | MIT |
+| Drei | 10.7.9 | Camera/grid helpers | MIT |
+| Zustand | 5.0.16 | Simulator and workflow state | MIT |
+| Zod | 4.6.7 | Strict Agent input/output validation | MIT |
+| Vitest | 3.2.7 | Unit/integration tests | MIT |
+| Playwright Test | 1.64.1 | Browser acceptance tests | Apache-2.0 |
+
+No third-party UR5 mesh, texture, sound, font, training dataset or generated media is bundled. The simplified arm geometry and interface graphics are generated in project code.
