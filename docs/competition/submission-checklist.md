@@ -10,6 +10,7 @@
 - [x] 12 份 Prompt/调试记录、对话决策记录和 Git 阶段提交。
 - [x] 单元/集成测试、三条真实浏览器验收、生产构建和帧率记录。
 - [x] README 十分钟复现路径、环境示例、原创性和第三方说明。
+- [x] Vercel 在线演示已部署并验证：<https://armverse-robomentor.vercel.app>
 
 ## 提交前由参赛者完成
 
