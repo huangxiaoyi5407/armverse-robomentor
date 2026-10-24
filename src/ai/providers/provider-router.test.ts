@@ -1,10 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AgentPlanSchema, AgentRequestSchema } from "@/ai/schemas";
 import { getProvider } from "./provider-router";
+import { INITIAL_JOINTS } from "@/features/simulator/store";
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("constrained agent schemas", () => {
+  it("uses a visibly different safe pose for the demo planner", async () => {
+    const response = await getProvider({}).run(
+      { agent: "planner", prompt: "移动到安全教学姿态" },
+      new AbortController().signal,
+    );
+
+    expect(response.agent).toBe("planner");
+    if (!("action" in response.result) || response.result.action !== "move_joints") throw new Error("规划结果类型错误");
+    expect(response.result.joints).not.toEqual(INITIAL_JOINTS);
+  });
   it("accepts only allow-listed actions and exact finite coordinates", () => {
     expect(() => AgentPlanSchema.parse({ action: "run_code", code: "fetch('/secret')" })).toThrow();
     expect(() => AgentPlanSchema.parse({ action: "move_joints", joints: [0, 1, 2], code: "evil()" })).toThrow();

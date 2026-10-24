@@ -21,6 +21,7 @@ export function WorkflowPanel() {
   const { running, timeline, summary } = useStore(workflowStore);
   const joints = useSimulationStore((state) => state.joints);
   const previewTrajectory = useSimulationStore((state) => state.previewTrajectory);
+  const playTrajectory = useSimulationStore((state) => state.play);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -30,7 +31,10 @@ export function WorkflowPanel() {
     try {
       const obstacles = challengeObstacle ? [{ id: "教学安全挑战区", min: [-1, -1, -1] as const, max: [1, 1, 1] as const }] : [];
       const result = await runTeachingWorkflow(command, { joints, environment: { obstacles } }, { provider: httpProvider, onTransition: (entry) => workflowStore.getState().append(operationId, entry) }, controller.current.signal);
-      if (result.trajectory) previewTrajectory(result.trajectory, result.safety);
+      if (result.trajectory) {
+        const simulationOperationId = previewTrajectory(result.trajectory, result.safety);
+        playTrajectory(simulationOperationId);
+      }
       workflowStore.getState().complete(operationId, { outcome: result.outcome, label: result.modeLabel });
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) workflowStore.getState().fail(operationId, "工作流失败，请重试或继续使用手动实验。 ");
@@ -43,6 +47,6 @@ export function WorkflowPanel() {
     <div className="workflow-timeline" aria-live="polite">
       {timeline.length === 0 ? <p className="timeline-empty">输入目标后，这里会展示每个 Agent 与确定性安全门的工作证据。</p> : timeline.map((entry, index) => <div className={`timeline-step ${entry.state}`} key={`${index}-${entry.state}`}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{entry.state.toUpperCase()}</strong><p>{entry.message}</p></div></div>)}
     </div>
-    {summary ? <p className={`workflow-summary ${summary.outcome}`} role="status">{summary.label} · {summary.outcome === "ready" ? "安全轨迹已进入预览" : "危险轨迹已阻断"}</p> : null}
+    {summary ? <p className={`workflow-summary ${summary.outcome}`} role="status">{summary.label} · {summary.outcome === "ready" ? "安全轨迹已自动开始播放" : "危险轨迹已阻断"}</p> : null}
   </section>;
 }

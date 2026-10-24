@@ -44,9 +44,9 @@ export async function runTeachingWorkflow(command: string, snapshot: WorkflowSna
   transition("reviewing", "安全 Agent 正在解释确定性校验结果");
   await requestSafetyExplanation(dependencies.provider, safety, signal);
   const approved = safety.approvedTrajectory;
-  transition(approved ? "executing" : "blocked", approved ? "轨迹已通过安全门，可进入仿真预览" : "确定性安全门已阻断轨迹");
+  transition(approved ? "executing" : "blocked", approved ? "轨迹已通过安全门，即将进入仿真执行" : "确定性安全门已阻断轨迹");
   transition("explaining", "教学 Agent 正在根据真实检测结果生成讲解");
   const tutor = await requestTutorExplanation(dependencies.provider, command, safety, signal);
-  transition("complete", approved ? "教学工作流完成，等待用户播放" : "教学工作流完成，危险动作未执行");
+  transition("complete", approved ? "教学工作流完成，安全轨迹已批准执行" : "教学工作流完成，危险动作未执行");
   return Object.freeze({ outcome: approved ? "ready" : "blocked", trajectory: approved, safety, timeline: Object.freeze(timeline), modeLabel: planned.label, tutor });
 }
