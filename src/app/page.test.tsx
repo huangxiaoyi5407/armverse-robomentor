@@ -7,10 +7,10 @@ vi.mock("@/features/simulator/RobotScene", () => ({
 import HomePage from "@/app/page";
 
 describe("project foundation", () => {
-  it("exposes the RoboMentor UR5 page title", () => {
+  it("exposes the 臂境智教 page title", () => {
     render(<HomePage />);
 
-    expect(screen.getByRole("heading", { level: 1, name: "RoboMentor UR5" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "臂境智教" })).toBeVisible();
   });
 
   it("clearly identifies demo mode without an AI key", () => {

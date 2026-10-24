@@ -20,7 +20,7 @@ export default function HomePage() {
     setActiveLesson(lesson);
   };
   return <main className="lab-shell">
-    <header className="lab-header"><div><p className="eyebrow">AUTOMATION DIGITAL TWIN LAB · UR5</p><h1>RoboMentor UR5</h1></div><p role="status" aria-label="运行模式" className="mode-status"><span />Demo 演示模式 · 无需 AI 密钥</p></header>
+    <header className="lab-header"><div><p className="eyebrow">ARMVERSE · AUTOMATION DIGITAL TWIN LAB · UR5</p><h1>臂境智教</h1></div><p role="status" aria-label="运行模式" className="mode-status"><span />Demo 演示模式 · 无需 AI 密钥</p></header>
     <div className="workbench">
       <LessonPanel lessons={LESSONS} activeId={activeLesson.id} onSelect={selectLesson} />
       <div className="simulation-column"><RobotScene /><ExperimentPanel lesson={activeLesson} /><WorkflowPanel /></div>

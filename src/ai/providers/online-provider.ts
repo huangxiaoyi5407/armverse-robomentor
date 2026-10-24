@@ -8,7 +8,7 @@ export class OnlineProvider implements AIProvider {
     if (signal.aborted) throw new DOMException("The operation was aborted.", "AbortError");
     const endpoint = `${(this.environment.AI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, "")}/chat/completions`;
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const response = await fetch(endpoint, { method: "POST", signal, headers: { "content-type": "application/json", authorization: `Bearer ${this.environment.AI_API_KEY}` }, body: JSON.stringify({ model: this.environment.AI_MODEL ?? "gpt-4o-mini", response_format: { type: "json_object" }, messages: [{ role: "system", content: "Return only a JSON object matching the requested RoboMentor agent schema. Never emit code or executable commands." }, { role: "user", content: JSON.stringify(request) }] }) });
+      const response = await fetch(endpoint, { method: "POST", signal, headers: { "content-type": "application/json", authorization: `Bearer ${this.environment.AI_API_KEY}` }, body: JSON.stringify({ model: this.environment.AI_MODEL ?? "gpt-4o-mini", response_format: { type: "json_object" }, messages: [{ role: "system", content: "Return only a JSON object matching the requested ArmVerse teaching-agent schema. Never emit code or executable commands." }, { role: "user", content: JSON.stringify(request) }] }) });
       if (response.status === 429 && attempt === 0) continue;
       if (!response.ok) throw new Error(`AI provider request failed (${response.status}).`);
       const payload: unknown = await response.json();

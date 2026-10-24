@@ -33,7 +33,7 @@ CAD model, image, logo, spreadsheet, or document text is redistributed.
   stores the equivalent interval `[-2*pi, 2*pi]` radians for each joint.
 - **Copyright / licence status:** the technical sheet states “Copyright (c)
   2009-2016 by Universal Robots A/S. All rights reserved.” The DH web page does
-  not present a reusable software/content licence. RoboMentor uses only the
+  not present a reusable software/content licence. ArmVerse uses only the
   attributed factual numeric specifications needed for interoperability and
   teaching; the source documents and their expressive content are not copied or
   bundled. Universal Robots and UR5 are names of their respective owner; this

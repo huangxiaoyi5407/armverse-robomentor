@@ -1,14 +1,16 @@
-# RoboMentor UR5
+# 臂境智教
 
-面向自动化类专业学生的 UR5 六自由度机械臂数字孪生教学实验台，对应“数字孪生与轻量具身智能仿真”方向。项目把三维交互、正逆运动学、雅可比与奇异性、轨迹规划、确定性安全检测和三 Agent 教学工作流放在一个无需云端密钥也可完整演示的 Web 应用中。
+**臂境智教——基于数字孪生与多智能体协同的 UR5 机械臂教学实验平台**
+
+面向自动化类专业学生，对应“数字孪生与轻量具身智能仿真”方向。项目把三维交互、正逆运动学、雅可比与奇异性、轨迹规划、确定性安全检测和三 Agent 教学工作流放在一个无需云端密钥也可完整演示的 Web 应用中。
 
 ## 10 分钟内启动
 
 环境要求：Node.js 20.9+、npm 10+、支持 WebGL 的 Chrome 或 Edge。
 
 ```powershell
-git clone <你的仓库地址>
-cd <仓库目录>
+git clone https://github.com/huangxiaoyi5407/armverse-robomentor.git
+cd armverse-robomentor
 npm ci
 Copy-Item .env.example .env.local
 npm run dev
