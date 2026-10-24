@@ -20,11 +20,12 @@ export function TrajectoryPlayer() {
     const tick = (now: number) => {
       if (useSimulationStore.getState().activeOperationId !== operationId ||
           useSimulationStore.getState().status !== "playing") return;
-      if ((now - started) / 1000 >= preview.duration) {
+      const elapsed = Math.max(0, (now - started) / 1000);
+      if (elapsed >= preview.duration) {
         commit(operationId);
         return;
       }
-      advance(operationId, (now - started) / 1000);
+      advance(operationId, elapsed);
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);

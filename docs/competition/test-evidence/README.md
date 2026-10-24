@@ -1,12 +1,12 @@
 # 测试与复现证据
 
-记录日期：2026-10-23（Asia/Shanghai）。以下结果在 Windows、Node.js 20.9+ 项目基线上取得。
+记录日期：2026-10-24（Asia/Shanghai）。以下结果在 Windows、Node.js 20.9+ 项目基线上取得。
 
 ## 自动化验证
 
 | 命令 | 结果 |
 | --- | --- |
-| `npm run test:run` | 14 个测试文件、128 个测试通过 |
+| `npm run test:run` | 15 个测试文件、129 个测试通过 |
 | `npm run test:e2e` | 3 条 Chrome 验收路径通过 |
 | `npm run lint` | 通过，零 warning |
 | `npm run build` | 通过；静态首页及动态 `/api/agent` 路由生成成功 |
@@ -18,10 +18,12 @@
 
 - 场景：打开三维 UR5，求解默认可达 IK 目标并播放 3 秒轨迹，继续观察至满 5 秒。
 - 方法：真实 Chrome 页面通过 `requestAnimationFrame` 统计五秒窗口。
-- 最终复验结果：293 帧 / 5005.8 ms，平均 **58.5 FPS**，达到至少 30 FPS 的验收目标。
+- 最终复验结果：292 帧 / 5012.4 ms，平均 **58.3 FPS**，达到至少 30 FPS 的验收目标。
 - 环境：Intel64 Family 6 Model 197 Stepping 2；32 GB 内存；Intel Arc 140T GPU（系统报告 16 GB）；Chrome 156.0.8078.47。
 
 Three.js 输出一条 `THREE.Clock` 已弃用警告，来自依赖内部，不影响功能或验收结果。
+
+2026-10-24 合并后复验时发现，浏览器首个 `requestAnimationFrame` 时间戳可能略早于 effect 内取得的 `performance.now()`，产生极小负播放时间并被状态机拒绝。新增回归测试先稳定复现该错误，再在播放器边界把同帧负偏差归零；状态机对真正非法时间的防御保持不变。修复后 129/129 单元与集成测试、lint、生产构建和 3/3 Chrome 验收路径全部通过。
 
 ## 干净复现
 
