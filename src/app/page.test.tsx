@@ -50,4 +50,11 @@ describe("project foundation", () => {
     fireEvent.click(screen.getByRole("button", { name: "学生实验台" }));
     expect(screen.getByRole("region", { name: "UR5 三维仿真实验台" })).toBeVisible();
   });
+
+  it("opens the PID control experiment from the student workspace", () => {
+    render(<HomePage />);
+    fireEvent.click(screen.getByRole("button", { name: "PID 控制实验" }));
+    expect(screen.getByRole("region", { name: "PID 单关节控制实验" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "UR5 三维仿真实验台" })).not.toBeInTheDocument();
+  });
 });
