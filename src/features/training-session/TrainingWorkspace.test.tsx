@@ -36,5 +36,7 @@ describe("flexible manufacturing training workspace", () => {
 
     expect(screen.getByRole("status", { name: "实训状态" })).toHaveTextContent("已完成");
     expect(screen.getByText("SESSION_COMPLETED")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "实训报告" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "打印或导出 PDF" })).toBeEnabled();
   });
 });
