@@ -38,4 +38,16 @@ describe("project foundation", () => {
     expect(screen.getByText("教学演示合成数据，不代表真实学生表现")).toBeVisible();
     expect(screen.getByRole("region", { name: "UR5 三维仿真实验台" })).toBeVisible();
   });
+
+  it("switches between the student lab and teacher class drill-down", () => {
+    render(<HomePage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "教师工作台" }));
+    expect(screen.getByRole("region", { name: "教师工作台" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "自动化 2301 班（合成示例）" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "UR5 三维仿真实验台" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "学生实验台" }));
+    expect(screen.getByRole("region", { name: "UR5 三维仿真实验台" })).toBeVisible();
+  });
 });
