@@ -56,3 +56,7 @@ Exact transitive versions are fixed by `package-lock.json`. Primary runtime and 
 | Playwright Test | 1.64.1 | Browser acceptance tests | Apache-2.0 |
 
 No third-party UR5 mesh, texture, sound, font, training dataset or generated media is bundled. The simplified arm geometry and interface graphics are generated in project code.
+
+The ROS 2 `JointTrajectory` export is an independently implemented JSON compatibility shape; this project does not bundle ROS 2 code or claim ROS 2 certification. The device gateway is a deterministic local simulation and opens no WebSocket or hardware connection.
+
+The 2026-10-25 production-dependency audit reported zero known vulnerabilities. Three advisories reported by the full audit are confined to the Vitest development/test dependency chain and are documented in the test evidence; no forced breaking upgrade was applied during release verification.

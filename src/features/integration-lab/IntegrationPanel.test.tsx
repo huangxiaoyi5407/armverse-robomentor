@@ -14,6 +14,8 @@ describe("industrial interface teaching panel", () => {
     fireEvent.click(screen.getByRole("button", { name: "完成模拟握手" }));
     fireEvent.click(screen.getByRole("button", { name: "发送心跳" }));
     expect(screen.getByText("心跳序号 1")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "读取模拟遥测" }));
+    expect(screen.getByRole("region", { name: "关节遥测" })).toHaveTextContent("J1 0.200 rad");
     expect(screen.getByRole("button", { name: "导出已审批轨迹 JSON" })).toBeEnabled();
 
     fireEvent.click(screen.getByRole("button", { name: "模拟急停" }));

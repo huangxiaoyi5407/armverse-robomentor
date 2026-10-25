@@ -36,9 +36,10 @@ export function IntegrationPanel() {
         <button type="button" disabled={gateway.status !== "disconnected"} onClick={() => dispatch({ type: "connect" })}>连接模拟网关</button>
         <button type="button" disabled={gateway.status !== "connecting"} onClick={() => dispatch({ type: "connected" })}>完成模拟握手</button>
         <button type="button" disabled={gateway.status !== "connected"} onClick={() => dispatch({ type: "heartbeat" })}>发送心跳</button>
+        <button type="button" disabled={gateway.status !== "connected"} onClick={() => dispatch({ type: "telemetry", joints: INITIAL_JOINTS })}>读取模拟遥测</button>
         <button type="button" disabled={gateway.status === "emergency-stop"} onClick={() => dispatch({ type: "emergency-stop" })}>模拟急停</button>
         <button type="button" disabled={gateway.status === "disconnected"} onClick={() => dispatch({ type: "reset" })}>复位断开</button>
-      </div></article>
+      </div>{gateway.telemetryJoints && <section className="gateway-telemetry" aria-label="关节遥测">{gateway.telemetryJoints.map((value, index) => <span key={index}>J{index + 1} {value.toFixed(3)} rad</span>)}</section>}</article>
     </div>
     <p className="model-boundary">所有轨迹必须与确定性安全报告中的 approvedTrajectory 完全一致，网络接口不能绕过安全门。</p>
   </section>;
