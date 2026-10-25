@@ -57,4 +57,11 @@ describe("project foundation", () => {
     expect(screen.getByRole("region", { name: "PID 单关节控制实验" })).toBeVisible();
     expect(screen.queryByRole("region", { name: "UR5 三维仿真实验台" })).not.toBeInTheDocument();
   });
+
+  it("opens the disclosed industrial interface simulation", () => {
+    render(<HomePage />);
+    fireEvent.click(screen.getByRole("button", { name: "工业接口实验" }));
+    expect(screen.getByRole("region", { name: "工业接口模拟" })).toBeVisible();
+    expect(screen.getByText("接口模拟，未连接真实机械臂")).toBeVisible();
+  });
 });
