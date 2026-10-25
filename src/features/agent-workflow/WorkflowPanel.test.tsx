@@ -19,11 +19,13 @@ describe("WorkflowPanel", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("automatically plays an approved three-agent trajectory", async () => {
-    render(<WorkflowPanel />);
+    const onTrainingResult = vi.fn();
+    render(<WorkflowPanel onTrainingResult={onTrainingResult} />);
 
     fireEvent.click(screen.getByRole("button", { name: "启动三 Agent" }));
 
     await waitFor(() => expect(useSimulationStore.getState().status).toBe("playing"));
     expect(screen.getByRole("status")).toHaveTextContent("安全轨迹已自动开始播放");
+    expect(onTrainingResult).toHaveBeenCalledWith(expect.objectContaining({ outcome: "ready" }));
   });
 });

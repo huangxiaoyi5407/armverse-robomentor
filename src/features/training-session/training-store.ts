@@ -11,7 +11,7 @@ import {
   type TrainingSession,
 } from "@/training/events";
 
-interface RecordEventInput {
+export interface RecordEventInput {
   readonly code: TrainingEventCode;
   readonly severity: TrainingEventSeverity;
   readonly elapsedMs: number;

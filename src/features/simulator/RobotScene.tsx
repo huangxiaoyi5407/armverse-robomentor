@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Grid, OrbitControls } from "@react-three/drei";
+import type { RecordEventInput } from "@/features/training-session/training-store";
 import { JointControls } from "./JointControls";
 import { IKTargetControls } from "./IKTargetControls";
 import { TrajectoryPlayer } from "./TrajectoryPlayer";
@@ -19,7 +20,7 @@ const STATUS_LABELS = {
   complete: "轨迹完成",
 } as const;
 
-export function RobotScene() {
+export function RobotScene({ onTrainingEvent }: { onTrainingEvent?: (event: RecordEventInput) => void } = {}) {
   const joints = useSimulationStore((state) => state.joints);
   const status = useSimulationStore((state) => state.status);
   const setJoint = useSimulationStore((state) => state.setJoint);
@@ -52,7 +53,7 @@ export function RobotScene() {
           </label>
           {showFrames ? <span>坐标系已显示</span> : null}
         </div>
-        <IKTargetControls />
+        <IKTargetControls onTrainingEvent={onTrainingEvent} />
         <JointControls joints={joints} onChange={setJoint} />
       </div>
       <TrajectoryPlayer />

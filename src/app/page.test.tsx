@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/features/simulator/RobotScene", () => ({
@@ -27,5 +27,15 @@ describe("project foundation", () => {
     expect(screen.getByText("末端位姿")).toBeInTheDocument();
     expect(screen.getByText("齐次变换矩阵")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "UR5 三维仿真实验台" })).toBeInTheDocument();
+  });
+
+  it("switches from chapter lessons to the disclosed comprehensive training workspace", () => {
+    render(<HomePage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "综合实训" }));
+
+    expect(screen.getByRole("heading", { name: "柔性产线轨迹规划与安全控制" })).toBeVisible();
+    expect(screen.getByText("教学演示合成数据，不代表真实学生表现")).toBeVisible();
+    expect(screen.getByRole("region", { name: "UR5 三维仿真实验台" })).toBeVisible();
   });
 });

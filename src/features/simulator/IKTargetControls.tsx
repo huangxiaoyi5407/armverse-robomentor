@@ -6,9 +6,10 @@ import { validateTrajectory } from "@/robotics/safety";
 import { planJointTrajectory } from "@/robotics/trajectory";
 import type { Vector3 } from "@/robotics/types";
 import { UR5_MODEL } from "@/robotics/ur5-model";
+import type { RecordEventInput } from "@/features/training-session/training-store";
 import { useSimulationStore } from "./store";
 
-export function IKTargetControls() {
+export function IKTargetControls({ onTrainingEvent }: { onTrainingEvent?: (event: RecordEventInput) => void } = {}) {
   const joints = useSimulationStore((state) => state.joints);
   const previewTrajectory = useSimulationStore((state) => state.previewTrajectory);
   const currentPose = useMemo(() => forwardKinematics(UR5_MODEL, joints).endEffector, [joints]);
@@ -26,11 +27,19 @@ export function IKTargetControls() {
       setMessage("请先输入有效的 X、Y、Z 目标坐标");
       return;
     }
+    onTrainingEvent?.({ code: "ATTEMPT_STARTED", severity: "info", elapsedMs: 0 });
+    onTrainingEvent?.({ code: "TARGET_UPDATED", severity: "info", elapsedMs: 1, jointSnapshot: joints });
     const result = solveInverseKinematics(UR5_MODEL, { position: parsedTarget, orientation: currentPose.orientation }, joints);
-    if (result.status !== "converged") { setMessage(`求解失败：${result.failureCode}`); return; }
+    if (result.status !== "converged") {
+      onTrainingEvent?.({ code: "IK_FAILED", severity: "warning", elapsedMs: 2, message: result.failureCode, findingCode: "IK_FAILURE" });
+      setMessage(`求解失败：${result.failureCode}`);
+      return;
+    }
+    onTrainingEvent?.({ code: "IK_SOLVED", severity: "info", elapsedMs: 2, jointSnapshot: result.joints });
     const trajectory = planJointTrajectory(joints, result.joints, { duration: 3, sampleCount: 61, mode: "quintic" });
     const report = validateTrajectory(UR5_MODEL, trajectory, { obstacles: [] });
     previewTrajectory(trajectory, report);
+    onTrainingEvent?.({ code: report.verdict === "blocked" ? "SAFETY_BLOCKED" : "TRAJECTORY_PREVIEWED", severity: report.verdict === "blocked" ? "blocked" : "info", elapsedMs: 3 });
     setMessage(report.verdict === "blocked" ? "安全检查已阻断" : "逆解收敛，安全轨迹已进入预览");
   };
   return <fieldset className="ik-controls"><legend>逆运动学目标 / m</legend>

@@ -4,7 +4,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { useStore } from "zustand";
 import { AgentResponseSchema, type AgentRequest } from "@/ai/schemas";
 import type { AIProvider } from "@/ai/providers/types";
-import { runTeachingWorkflow } from "@/ai/workflow";
+import { runTeachingWorkflow, type WorkflowResult } from "@/ai/workflow";
 import { useSimulationStore } from "@/features/simulator/store";
 import { workflowStore } from "./workflow-store";
 
@@ -14,7 +14,7 @@ const httpProvider: AIProvider = { async run(request: AgentRequest, signal: Abor
   return AgentResponseSchema.parse(await response.json());
 } };
 
-export function WorkflowPanel() {
+export function WorkflowPanel({ onTrainingResult }: { onTrainingResult?: (result: WorkflowResult) => void } = {}) {
   const [command, setCommand] = useState("将机械臂移动到安全教学姿态，并解释运动学变化");
   const [challengeObstacle, setChallengeObstacle] = useState(false);
   const controller = useRef<AbortController | null>(null);
@@ -35,6 +35,7 @@ export function WorkflowPanel() {
         const simulationOperationId = previewTrajectory(result.trajectory, result.safety);
         playTrajectory(simulationOperationId);
       }
+      onTrainingResult?.(result);
       workflowStore.getState().complete(operationId, { outcome: result.outcome, label: result.modeLabel });
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) workflowStore.getState().fail(operationId, "工作流失败，请重试或继续使用手动实验。 ");

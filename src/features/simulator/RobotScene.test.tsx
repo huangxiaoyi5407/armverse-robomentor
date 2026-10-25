@@ -44,6 +44,20 @@ describe("RobotScene", () => {
     expect(screen.getByText("请先输入有效的 X、Y、Z 目标坐标")).toBeVisible();
   });
 
+  it("emits traceable training events for a successful IK preview", () => {
+    const onTrainingEvent = vi.fn();
+    render(<RobotScene onTrainingEvent={onTrainingEvent} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "求解逆运动学并预览" }));
+
+    expect(onTrainingEvent.mock.calls.map(([event]) => event.code)).toEqual([
+      "ATTEMPT_STARTED",
+      "TARGET_UPDATED",
+      "IK_SOLVED",
+      "TRAJECTORY_PREVIEWED",
+    ]);
+  });
+
   it("shows joint 6 rotation through an oriented end-effector marker", () => {
     const before = armVisualGeometry(INITIAL_JOINTS);
     const rotated = armVisualGeometry([
