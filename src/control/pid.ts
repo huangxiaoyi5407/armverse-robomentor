@@ -24,9 +24,10 @@ export interface PIDSample {
   readonly control: number;
 }
 
-export interface PIDSimulationResult {
+export interface PIDSimulationResult<State> {
   readonly samples: readonly PIDSample[];
   readonly finalIntegral: number;
+  readonly finalState: State;
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -43,7 +44,7 @@ function validateConfig(config: PIDConfig, setpoint: number): void {
   if (!Number.isInteger(steps) || steps > 100_000) throw new RangeError("Duration must contain a bounded whole number of time steps.");
 }
 
-export function simulatePID<State>(config: PIDConfig, plant: PIDPlant<State>, setpoint: number): PIDSimulationResult {
+export function simulatePID<State>(config: PIDConfig, plant: PIDPlant<State>, setpoint: number): PIDSimulationResult<State> {
   validateConfig(config, setpoint);
   let state = plant.initialState;
   let output = plant.measure(state);
@@ -71,5 +72,5 @@ export function simulatePID<State>(config: PIDConfig, plant: PIDPlant<State>, se
     }));
   }
 
-  return Object.freeze({ samples: Object.freeze(samples), finalIntegral: integral });
+  return Object.freeze({ samples: Object.freeze(samples), finalIntegral: integral, finalState: state });
 }

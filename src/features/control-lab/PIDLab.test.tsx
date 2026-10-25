@@ -28,7 +28,7 @@ describe("PID control teaching lab", () => {
     expect(screen.getByRole("status", { name: "响应类型" })).toHaveTextContent("过调响应");
 
     fireEvent.click(screen.getByRole("button", { name: "欠调预设" }));
-    expect(screen.getByRole("spinbutton", { name: "Kp" })).toHaveValue(0.1);
+    expect(screen.getByRole("spinbutton", { name: "Kp" })).toHaveValue(0.2);
     expect(screen.getByRole("status", { name: "响应类型" })).toHaveTextContent("欠调响应");
 
     fireEvent.click(screen.getByRole("button", { name: "稳定预设" }));
@@ -41,6 +41,10 @@ describe("PID control teaching lab", () => {
     expect(screen.getByRole("spinbutton", { name: "负载等效惯量" })).toHaveValue(0);
     expect(screen.getByRole("spinbutton", { name: "粘性摩擦" })).toHaveValue(0.4);
     expect(screen.getByRole("spinbutton", { name: "库仑摩擦" })).toHaveValue(0.1);
+    const modelState = screen.getByRole("region", { name: "教学模型状态" });
+    expect(within(modelState).getByText("估算扭矩")).toBeVisible();
+    expect(within(modelState).getByText("关节速度")).toBeVisible();
+    expect(within(modelState).getByText("关节加速度")).toBeVisible();
     expect(screen.getByText("教学简化模型，不用于真实机械臂选型或安全控制")).toBeVisible();
 
     fireEvent.change(screen.getByRole("spinbutton", { name: "负载等效惯量" }), { target: { value: "2" } });

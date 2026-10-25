@@ -24,6 +24,8 @@ describe("deterministic PID simulation", () => {
     const metrics = calculateControlMetrics(result.samples);
 
     expect(result.samples.at(-1)?.time).toBeCloseTo(10, 8);
+    expect(result.finalState.position).toBeCloseTo(result.samples.at(-1)?.output ?? 0, 8);
+    expect(Number.isFinite(result.finalState.velocity)).toBe(true);
     expect(metrics.steadyStateError).toBeLessThan(0.05);
     expect(metrics.overshoot).toBeLessThan(10);
     expect(metrics.riseTime).not.toBeNull();
