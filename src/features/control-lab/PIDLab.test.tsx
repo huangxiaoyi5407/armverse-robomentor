@@ -34,4 +34,16 @@ describe("PID control teaching lab", () => {
     fireEvent.click(screen.getByRole("button", { name: "稳定预设" }));
     expect(screen.getByRole("status", { name: "响应类型" })).toHaveTextContent("稳定响应");
   });
+
+  it("exposes teaching inertia, payload, and friction controls with an exact model disclaimer", () => {
+    render(<PIDLab />);
+    expect(screen.getByRole("spinbutton", { name: "关节惯量" })).toHaveValue(1);
+    expect(screen.getByRole("spinbutton", { name: "负载等效惯量" })).toHaveValue(0);
+    expect(screen.getByRole("spinbutton", { name: "粘性摩擦" })).toHaveValue(0.4);
+    expect(screen.getByRole("spinbutton", { name: "库仑摩擦" })).toHaveValue(0.1);
+    expect(screen.getByText("教学简化模型，不用于真实机械臂选型或安全控制")).toBeVisible();
+
+    fireEvent.change(screen.getByRole("spinbutton", { name: "负载等效惯量" }), { target: { value: "2" } });
+    expect(screen.getByRole("spinbutton", { name: "负载等效惯量" })).toHaveValue(2);
+  });
 });
